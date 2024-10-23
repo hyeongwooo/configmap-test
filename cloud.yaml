@@ -1,0 +1,227 @@
+[configmap_volume.yaml]
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: configvolume-test
+data:
+  my.cnf: |
+    [mariadbd]
+    bind_address = 0.0.0.0
+    max_connections = 99
+    innodb_buffer_pool_size = 64M
+    sql_mode = STRICT_TRANS_TABLES
+  MARIADB_ROOT_PASSWORD: dcn1234
+  other_variables: cloud1234
+
+
+------------------------------------------------
+
+[configmap.yaml]
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-test
+data:
+  MARIADB_ROOT_PASSWORD: dcn1234
+  other_variables: cloud1234
+
+
+----------------------------------------------------
+
+[deployment_whole.yaml]
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      name: test
+      labels:
+        app: test
+    spec:
+      containers:
+      - name: test-1
+        image: mariadb
+        envFrom:
+        - configMapRef:
+            name: config-test
+
+
+
+------------------------------------------
+
+
+[deploment_part.yaml]
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      name: test
+      labels:
+        app: test
+    spec:
+      containers:
+      - name: test
+        image: mariadb
+        env:
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: config-test
+              key: MARIADB_ROOT_PASSWORD
+
+
+----------------------------------------
+
+
+[deployment_volume.yaml]
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test
+  template:
+    metadata:
+      name: test
+      labels:
+        app: test
+    spec:
+      containers:
+      - name: test
+        image: mariadb
+        envFrom:
+        - configMapRef:
+            name: configvolume-test
+        volumeMounts:
+        - mountPath: /etc/mysql/conf.d/
+          name: volume-test
+      volumes:
+      - name: volume-test
+        configMap:
+          name: configvolume-test
+
+
+-----------------------------------------
+
+[deployment_secretWhole.yaml]
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secret-test
+spec:
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      name: secret-test
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb
+        ports:
+        - containerPort: 3306
+        envFrom:
+        - secretRef:
+            name: db-secret
+
+
+----------------------------------------
+
+[deployment_secretPart.yaml]
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secret-test
+spec:
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      name: secret-test
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MARIADB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: MARIADB_ROOT_PASSWORD
+
+
+
+--------------------------------------------
+
+[deployment_secretVolume.yaml]
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secret-test
+spec:
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      name: secret-test
+      labels:
+        app: mariadb
+    spec:
+      containers:
+      - name: mariadb
+        image: mariadb
+        ports:
+        - containerPort: 3306
+        envFrom:
+        - secretRef:
+            name: db-secret
+        volumeMounts:
+        - mountPath: /tmp/secret
+          name: db-secret
+      volumes:
+      - name: db-secret
+        secret:
+          secretName: db-secret
+
+-------------------------------
+
+[test.txt]
+
+DCN1234
+
+---------------------------------
+
